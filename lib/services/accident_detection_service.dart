@@ -18,150 +18,146 @@ class AccidentDetectionService {
   DateTime? lastAccidentTime;
   static const int cooldownMinutes = 5;
 
+  DateTime? _lastLocationCheck;
+  static const Duration _locationThrottle = Duration(seconds: 30);
+  bool _processing = false;
+
   AccidentDetectionService({this.uiController});
 
-  /// START
   void startDetection() {
-    /// Listen to gyroscope
-    gyroscopeSubscription = gyroscopeEvents.listen((event) {
-      double rotation = event.x.abs() + event.y.abs() + event.z.abs();
+    stopDetection();
 
-      /// Phone rotated strongly
-      if (rotation > 2) {
-        phoneRotated = true;
-      }
-    });
-
-    /// Listen to accelerometer
-    accelerometerSubscription = accelerometerEvents.listen((
-      AccelerometerEvent event,
-    ) async {
-      double x = event.x;
-      double y = event.y;
-      double z = event.z;
-
-      /// Calculate total force
-      double gForce = sqrt(x * x + y * y + z * z);
-
-      uiController?.xValue.value = x;
-      uiController?.yValue.value = y;
-      uiController?.zValue.value = z;
-
-      uiController?.gForce.value = gForce;
-      lastGForce = gForce;
-
-      print("GForce: $gForce");
-
-      /// Get speed
-      Position? position;
-      try {
-        LocationPermission permission = await Geolocator.checkPermission();
-        if (permission == LocationPermission.denied) {
-          permission = await Geolocator.requestPermission();
+    try {
+      gyroscopeSubscription = gyroscopeEvents.listen((event) {
+        double rotation = event.x.abs() + event.y.abs() + event.z.abs();
+        if (rotation > 2) {
+          phoneRotated = true;
         }
-        if (permission == LocationPermission.whileInUse ||
-            permission == LocationPermission.always) {
-          position = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.high,
-          );
+      });
+    } catch (e) {
+      print("Gyroscope unavailable: $e");
+    }
+
+    try {
+      accelerometerSubscription = accelerometerEvents.listen((
+        AccelerometerEvent event,
+      ) async {
+        if (_processing) return;
+        _processing = true;
+        try {
+          await _handleAccelerometerEvent(event);
+        } finally {
+          _processing = false;
         }
-      } catch (e) {
-        print("Location unavailable: $e");
-      }
-
-      double speed = (position?.speed ?? 0) * 3.6;
-      uiController?.speed.value = speed;
-
-      print("Speed: $speed km/h");
-
-      /// ---------------------------
-      /// CAR CRASH DETECTION
-      /// ---------------------------
-
-      if (gForce > 6 && phoneRotated) {
-        if (lastAccidentTime != null &&
-            DateTime.now().difference(lastAccidentTime!).inMinutes <
-                cooldownMinutes) {
-          print("SKIPPED: cooldown active");
-        } else {
-          print("CAR CRASH DETECTED");
-
-          highImpactDetected = true;
-          lastAccidentTime = DateTime.now();
-
-          await saveAccident(
-            type: "Car Crash",
-            force: gForce,
-            speed: speed,
-            position: position,
-          );
-
-          resetStates();
-        }
-      }
-      if (gForce > 6) {
-        if (lastAccidentTime != null &&
-            DateTime.now().difference(lastAccidentTime!).inMinutes <
-                cooldownMinutes) {
-          print("SKIPPED: cooldown active");
-        } else {
-          print("CAR CRASH DETECTED");
-
-          highImpactDetected = true;
-          lastAccidentTime = DateTime.now();
-
-          await saveAccident(
-            type: "Car Crash",
-            force: gForce,
-            speed: speed,
-            position: position,
-          );
-
-          resetStates();
-        }
-      }
-
-      /// ---------------------------
-      /// FALL DETECTION
-      /// ---------------------------
-
-      if (gForce < 3) {
-        /// Possible free fall
-        print("Free Fall Detected");
-
-        await Future.delayed(const Duration(seconds: 1));
-
-        if (lastGForce > 5) {
-          if (lastAccidentTime != null &&
-              DateTime.now().difference(lastAccidentTime!).inMinutes <
-                  cooldownMinutes) {
-            print("SKIPPED: cooldown active");
-          } else {
-            print("FALL DETECTED");
-
-            lastAccidentTime = DateTime.now();
-
-            await saveAccident(
-              type: "Fall Down",
-              force: lastGForce,
-              speed: speed,
-              position: position,
-            );
-
-            resetStates();
-          }
-        }
-      }
-    });
+      });
+    } catch (e) {
+      print("Accelerometer unavailable: $e");
+    }
   }
 
-  /// STOP
+  Future<void> _handleAccelerometerEvent(AccelerometerEvent event) async {
+    double x = event.x;
+    double y = event.y;
+    double z = event.z;
+
+    double gForce = sqrt(x * x + y * y + z * z);
+
+    uiController?.xValue.value = x;
+    uiController?.yValue.value = y;
+    uiController?.zValue.value = z;
+    uiController?.gForce.value = gForce;
+    lastGForce = gForce;
+
+    Position? position;
+    if (_lastLocationCheck == null ||
+        DateTime.now().difference(_lastLocationCheck!) >= _locationThrottle) {
+      position = await _getLocation();
+      if (position != null) {
+        _lastLocationCheck = DateTime.now();
+      }
+    }
+
+    double speed = (position?.speed ?? 0) * 3.6;
+    uiController?.speed.value = speed;
+
+    if (gForce > 6) {
+      if (lastAccidentTime != null &&
+          DateTime.now().difference(lastAccidentTime!).inMinutes <
+              cooldownMinutes) {
+        print("SKIPPED: cooldown active");
+      } else {
+        print("CAR CRASH DETECTED");
+        highImpactDetected = true;
+        lastAccidentTime = DateTime.now();
+
+        position ??= await _getLocation();
+
+        await saveAccident(
+          type: "Car Crash",
+          force: gForce,
+          speed: speed,
+          position: position,
+        );
+
+        resetStates();
+      }
+      return;
+    }
+
+    if (gForce < 3) {
+      double capturedGForce = lastGForce;
+      await Future.delayed(const Duration(seconds: 1));
+
+      if (capturedGForce > 5) {
+        if (lastAccidentTime != null &&
+            DateTime.now().difference(lastAccidentTime!).inMinutes <
+                cooldownMinutes) {
+          print("SKIPPED: cooldown active");
+        } else {
+          print("FALL DETECTED");
+          lastAccidentTime = DateTime.now();
+
+          position ??= await _getLocation();
+
+          await saveAccident(
+            type: "Fall Down",
+            force: capturedGForce,
+            speed: speed,
+            position: position,
+          );
+
+          resetStates();
+        }
+      }
+    }
+  }
+
+  Future<Position?> _getLocation() async {
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always) {
+        return await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
+      }
+    } catch (e) {
+      print("Location unavailable: $e");
+    }
+    return null;
+  }
+
   void stopDetection() {
+    _processing = false;
     accelerometerSubscription?.cancel();
+    accelerometerSubscription = null;
     gyroscopeSubscription?.cancel();
+    gyroscopeSubscription = null;
   }
 
-  /// SAVE ACCIDENT OFFLINE
   Future<void> saveAccident({
     required String type,
     required double force,
@@ -177,14 +173,11 @@ class AccidentDetectionService {
       position?.longitude ?? 0,
     );
 
-    if (uiController != null) {
+    if (uiController != null && !uiController!.isClosed) {
       await uiController!.loadAccidents();
     }
-
-    print("ACCIDENT SAVED");
   }
 
-  /// RESET FLAGS
   void resetStates() {
     phoneRotated = false;
     highImpactDetected = false;

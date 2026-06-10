@@ -1,7 +1,6 @@
 import 'package:accident_detection/database/hive_database.dart';
 import 'package:accident_detection/services/accident_detection_service.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 
@@ -32,22 +31,21 @@ class AppController extends GetxController {
     accidents.value = await HiveDatabase.getAccidents();
   }
 
-  /// ADD
   Future<void> addAccident(Map<String, dynamic> accident) async {
+    DateTime time;
+    try {
+      time = DateTime.parse(accident['time']?.toString() ?? '');
+    } catch (e) {
+      time = DateTime.now();
+    }
     await HiveDatabase.addToDatabase(
       accident['type'],
-
-      DateTime.parse(accident['time']),
-
-      accident['force'],
-
-      accident['speed'],
-
-      accident['latitude'],
-
-      accident['longitude'],
+      time,
+      (accident['force'] as num?)?.toDouble() ?? 0,
+      (accident['speed'] as num?)?.toDouble() ?? 0,
+      (accident['latitude'] as num?)?.toDouble() ?? 0,
+      (accident['longitude'] as num?)?.toDouble() ?? 0,
     );
-
     await loadAccidents();
   }
 
@@ -58,32 +56,31 @@ class AppController extends GetxController {
     await loadAccidents();
   }
 
-  final service = FlutterBackgroundService();
-
-  /// TOGGLE
   void toggleAccidentDetection(bool value) async {
     isAccidentDetected.value = value;
     if (value) {
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (!await Geolocator.isLocationServiceEnabled()) {
-        Get.snackbar(
-          "Location Required",
-          "Enable GPS to capture accident locations",
-          mainButton: TextButton(
-            onPressed: () => Geolocator.openLocationSettings(),
-            child: const Text("Open Settings"),
-          ),
-          duration: const Duration(seconds: 10),
-        );
+      try {
+        LocationPermission permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+        }
+        if (!await Geolocator.isLocationServiceEnabled()) {
+          Get.snackbar(
+            "Location Required",
+            "Enable GPS to capture accident locations",
+            mainButton: TextButton(
+              onPressed: () => Geolocator.openLocationSettings(),
+              child: const Text("Open Settings"),
+            ),
+            duration: const Duration(seconds: 10),
+          );
+        }
+      } catch (e) {
+        print("Location check error: $e");
       }
       accidentDetectionService.startDetection();
-      service.startService();
     } else {
       accidentDetectionService.stopDetection();
-      service.invoke("stopService");
     }
   }
 }

@@ -17,10 +17,15 @@ class AccidentsHistoryPage extends GetView<AppController> {
         title: const Text('Accidents History', style: FontThemes.headersStyle),
       ),
       body: Obx(() {
+        final items = controller.accidents;
         return ListView.builder(
-          itemCount: controller.accidents.length,
+          itemCount: items.length,
           itemBuilder: (context, index) {
-            Map<String, dynamic> accident = controller.accidents[index];
+            if (index >= items.length) return const SizedBox.shrink();
+            final accident = items[index];
+            if (accident is! Map<String, dynamic>) {
+              return const SizedBox.shrink();
+            }
             return AccidentItem(accident: accident, index: index);
           },
         );

@@ -128,8 +128,8 @@ class HomePage extends GetView<AppController> {
                     padding: EdgeInsets.all(50),
                     value: controller.isAccidentDetected.value,
 
-                    onChanged: (Value) {
-                      controller.toggleAccidentDetection(Value);
+                    onChanged: (value) {
+                      controller.toggleAccidentDetection(value);
                     },
                     inactiveThumbColor: Colors.white,
                     activeThumbColor: Colors.green[200],
@@ -142,8 +142,8 @@ class HomePage extends GetView<AppController> {
             const SizedBox(height: 20),
             Text(
               controller.isAccidentDetected.value
-                  ? 'Accident Detected ON'
-                  : 'Accident Detected OFF',
+                  ? 'Accident Detection ON'
+                  : 'Accident Detection OFF',
               style: FontThemes.headersStyle,
             ),
           ],

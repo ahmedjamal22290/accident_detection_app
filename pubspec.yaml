@@ -32,8 +32,6 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter:
     sdk: flutter
-  flutter_background_service: ^5.1.0
-  flutter_background_service_android: ^6.3.1
   flutter_map: ^7.0.2
   geolocator: ^12.0.0
   get: ^4.7.3
@@ -58,14 +56,93 @@ flutter:
   uses-material-design: true
   # To add assets to your application, add an assets section, like this:
   assets:
-    - assets/alarm.mp3
-    - assets/GPS/Fayom/12/
-    - assets/GPS/Fayom/13/
-    - assets/GPS/Fayom/14/
-    - assets/GPS/Fayom/15/
-    - assets/GPS/Fayom/16/
-    - assets/GPS/Fayom/17/
-    - assets/GPS/Fayom/18/
+    - assets/GPS/Fayom/12/2398/
+    - assets/GPS/Fayom/12/2399/
+    - assets/GPS/Fayom/13/4797/
+    - assets/GPS/Fayom/13/4798/
+    - assets/GPS/Fayom/14/9594/
+    - assets/GPS/Fayom/14/9595/
+    - assets/GPS/Fayom/14/9596/
+    - assets/GPS/Fayom/14/9597/
+    - assets/GPS/Fayom/15/19189/
+    - assets/GPS/Fayom/15/19190/
+    - assets/GPS/Fayom/15/19191/
+    - assets/GPS/Fayom/15/19192/
+    - assets/GPS/Fayom/15/19193/
+    - assets/GPS/Fayom/15/19194/
+    - assets/GPS/Fayom/16/38378/
+    - assets/GPS/Fayom/16/38379/
+    - assets/GPS/Fayom/16/38380/
+    - assets/GPS/Fayom/16/38381/
+    - assets/GPS/Fayom/16/38382/
+    - assets/GPS/Fayom/16/38383/
+    - assets/GPS/Fayom/16/38384/
+    - assets/GPS/Fayom/16/38385/
+    - assets/GPS/Fayom/16/38386/
+    - assets/GPS/Fayom/16/38387/
+    - assets/GPS/Fayom/16/38388/
+    - assets/GPS/Fayom/17/76756/
+    - assets/GPS/Fayom/17/76757/
+    - assets/GPS/Fayom/17/76758/
+    - assets/GPS/Fayom/17/76759/
+    - assets/GPS/Fayom/17/76760/
+    - assets/GPS/Fayom/17/76761/
+    - assets/GPS/Fayom/17/76762/
+    - assets/GPS/Fayom/17/76763/
+    - assets/GPS/Fayom/17/76764/
+    - assets/GPS/Fayom/17/76765/
+    - assets/GPS/Fayom/17/76766/
+    - assets/GPS/Fayom/17/76767/
+    - assets/GPS/Fayom/17/76768/
+    - assets/GPS/Fayom/17/76769/
+    - assets/GPS/Fayom/17/76770/
+    - assets/GPS/Fayom/17/76771/
+    - assets/GPS/Fayom/17/76772/
+    - assets/GPS/Fayom/17/76773/
+    - assets/GPS/Fayom/17/76774/
+    - assets/GPS/Fayom/17/76775/
+    - assets/GPS/Fayom/17/76776/
+    - assets/GPS/Fayom/18/153512/
+    - assets/GPS/Fayom/18/153513/
+    - assets/GPS/Fayom/18/153514/
+    - assets/GPS/Fayom/18/153515/
+    - assets/GPS/Fayom/18/153516/
+    - assets/GPS/Fayom/18/153517/
+    - assets/GPS/Fayom/18/153518/
+    - assets/GPS/Fayom/18/153519/
+    - assets/GPS/Fayom/18/153520/
+    - assets/GPS/Fayom/18/153521/
+    - assets/GPS/Fayom/18/153522/
+    - assets/GPS/Fayom/18/153523/
+    - assets/GPS/Fayom/18/153524/
+    - assets/GPS/Fayom/18/153525/
+    - assets/GPS/Fayom/18/153526/
+    - assets/GPS/Fayom/18/153527/
+    - assets/GPS/Fayom/18/153528/
+    - assets/GPS/Fayom/18/153529/
+    - assets/GPS/Fayom/18/153530/
+    - assets/GPS/Fayom/18/153531/
+    - assets/GPS/Fayom/18/153532/
+    - assets/GPS/Fayom/18/153533/
+    - assets/GPS/Fayom/18/153534/
+    - assets/GPS/Fayom/18/153535/
+    - assets/GPS/Fayom/18/153536/
+    - assets/GPS/Fayom/18/153537/
+    - assets/GPS/Fayom/18/153538/
+    - assets/GPS/Fayom/18/153539/
+    - assets/GPS/Fayom/18/153540/
+    - assets/GPS/Fayom/18/153541/
+    - assets/GPS/Fayom/18/153542/
+    - assets/GPS/Fayom/18/153543/
+    - assets/GPS/Fayom/18/153544/
+    - assets/GPS/Fayom/18/153545/
+    - assets/GPS/Fayom/18/153546/
+    - assets/GPS/Fayom/18/153547/
+    - assets/GPS/Fayom/18/153548/
+    - assets/GPS/Fayom/18/153549/
+    - assets/GPS/Fayom/18/153550/
+    - assets/GPS/Fayom/18/153551/
+    - assets/GPS/Fayom/18/153552/
   #   - images/a_dot_ham.jpeg
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

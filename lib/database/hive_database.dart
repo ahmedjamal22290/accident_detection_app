@@ -11,7 +11,6 @@ class HiveDatabase {
   ) async {
     try {
       Box box = Hive.box('accidents');
-      print("DB: box 'accidents' opened successfully");
 
       Map<String, dynamic> data = {
         "type": type,
@@ -22,9 +21,9 @@ class HiveDatabase {
         "force": force,
       };
 
-      await box.add(data);
-      print("DB: box.add() succeeded");
-      print("ACCIDENT SAVED");
+      int key = await box.add(data);
+      data['hiveKey'] = key;
+      await box.put(key, data);
     } catch (e) {
       print("DB ERROR in addToDatabase: $e");
     }
@@ -33,10 +32,7 @@ class HiveDatabase {
   static Future<List> getAccidents() async {
     try {
       Box box = Hive.box('accidents');
-      print("DB: getAccidents - box opened, count=${box.length}");
-      List result = box.values.toList();
-      print("DB: getAccidents returning ${result.length} items");
-      return result;
+      return box.values.toList();
     } catch (e) {
       print("DB ERROR in getAccidents: $e");
       return [];
@@ -46,8 +42,18 @@ class HiveDatabase {
   static Future<void> deleteAccident(int index) async {
     try {
       Box box = Hive.box('accidents');
-      await box.deleteAt(index);
-      print("DB: deleted accident at index $index");
+      final values = box.values.toList();
+      if (index < 0 || index >= values.length) {
+        print("DB ERROR: index $index out of range (length ${values.length})");
+        return;
+      }
+      final accident = values[index] as Map;
+      final key = accident['hiveKey'];
+      if (key != null) {
+        await box.delete(key);
+      } else {
+        await box.deleteAt(index);
+      }
     } catch (e) {
       print("DB ERROR in deleteAccident: $e");
     }

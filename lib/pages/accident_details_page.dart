@@ -1,4 +1,5 @@
 import 'package:accident_detection/app/controllers/app_controller.dart';
+import 'package:accident_detection/helper/debug_tile_provider.dart';
 import 'package:accident_detection/themes/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -9,13 +10,30 @@ import 'package:share_plus/share_plus.dart';
 class AccidentDetailsPage extends StatelessWidget {
   const AccidentDetailsPage({super.key});
 
-  Map<String, dynamic> get accident => Get.arguments['accident'];
-  int get index => Get.arguments['index'];
+  Map<String, dynamic> get accident {
+    final args = Get.arguments;
+    if (args == null || args['accident'] == null) {
+      return <String, dynamic>{};
+    }
+    return args['accident'] as Map<String, dynamic>;
+  }
+
+  int get index {
+    final args = Get.arguments;
+    return (args != null && args['index'] != null) ? args['index'] as int : 0;
+  }
+
+  bool _isInFayoum(double lat, double lng) {
+    return lat >= 29.15 && lat <= 29.37 && lng >= 30.75 && lng <= 30.87;
+  }
 
   @override
   Widget build(BuildContext context) {
-    double lat = double.tryParse('${accident['latitude']}') ?? 29.3;
-    double lng = double.tryParse('${accident['longitude']}') ?? 30.8;
+    double accidentLat = double.tryParse('${accident['latitude']}') ?? 0;
+    double accidentLng = double.tryParse('${accident['longitude']}') ?? 0;
+    bool showMarker = _isInFayoum(accidentLat, accidentLng);
+    double lat = showMarker ? accidentLat : 29.308;
+    double lng = showMarker ? accidentLng : 30.842;
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
@@ -111,7 +129,7 @@ class AccidentDetailsPage extends StatelessWidget {
             buildInfoCard(
               icon: Icons.location_on,
               title: "Location",
-              value: "$lat , $lng",
+              value: "$accidentLat , $accidentLng",
               color: AppColors.monitoringOn,
             ),
 
@@ -150,40 +168,12 @@ class AccidentDetailsPage extends StatelessWidget {
             /// OFFLINE MAP
             SizedBox(
               height: 300,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: FlutterMap(
-                  options: MapOptions(
-                    initialCenter: LatLng(lat, lng),
-                    initialZoom: 14,
-                    minZoom: 12,
-                    maxZoom: 18,
-                  ),
-                  children: [
-                    TileLayer(
-                      urlTemplate: 'assets/GPS/Fayom/{z}/{x}/{y}.png',
-                      tileProvider: AssetTileProvider(),
-                      maxNativeZoom: 18,
-                      minNativeZoom: 12,
-                    ),
-                    MarkerLayer(
-                      markers: [
-                        Marker(
-                          point: LatLng(lat, lng),
-                          width: 40,
-                          height: 40,
-                          child: const Icon(
-                            Icons.location_on,
-                            color: Colors.red,
-                            size: 40,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+              child: OfflineMapPage(
+                accidentLat: accidentLat,
+                accidentLng: accidentLng,
               ),
             ),
+
 
             const SizedBox(height: 30),
 
@@ -322,6 +312,86 @@ class AccidentDetailsPage extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class OfflineMapPage extends StatelessWidget {
+  const OfflineMapPage({super.key, this.accidentLat, this.accidentLng});
+
+  final double? accidentLat;
+  final double? accidentLng;
+
+  bool get _showMarker =>
+      accidentLat != null &&
+      accidentLng != null &&
+      accidentLat! >= 29.15 &&
+      accidentLat! <= 29.37 &&
+      accidentLng! >= 30.75 &&
+      accidentLng! <= 30.87;
+
+  @override
+  Widget build(BuildContext context) {
+    final center = _showMarker
+        ? LatLng(accidentLat!, accidentLng!)
+        : const LatLng(29.3083, 30.8428);
+
+    return FlutterMap(
+      options: MapOptions(
+        initialCenter: center,
+        initialZoom: 12,
+        minZoom: 12,
+        maxZoom: 18,
+        interactionOptions: const InteractionOptions(flags: InteractiveFlag.all),
+      ),
+      children: [
+        TileLayer(
+          urlTemplate: 'assets/GPS/Fayom/{z}/{x}/{y}.png',
+          tileProvider: DebugAssetTileProvider(),
+          minNativeZoom: 12,
+          maxNativeZoom: 18,
+          keepBuffer: 0,
+        ),
+        if (_showMarker)
+          MarkerLayer(
+            markers: [
+              Marker(
+                point: center,
+                width: 40,
+                height: 40,
+                child: const Icon(Icons.location_on, color: Colors.red, size: 40),
+              ),
+            ],
+          ),
+        const SafeArea(
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: EdgeInsets.all(12),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                  boxShadow: [
+                    BoxShadow(
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                      color: Colors.black26,
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  child: Text(
+                    'Offline tiles loaded from assets',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
