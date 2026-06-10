@@ -28,14 +28,20 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  audioplayers: ^6.0.0
   cupertino_icons: ^1.0.8
   flutter:
     sdk: flutter
-  get: ^4.7.3
-  sensors_plus: ^6.0.0
+  flutter_background_service: ^5.1.0
+  flutter_background_service_android: ^6.3.1
+  flutter_map: ^7.0.2
   geolocator: ^12.0.0
+  get: ^4.7.3
   hive: ^2.2.3
   hive_flutter: ^1.1.0
+  latlong2: ^0.9.1
+  sensors_plus: ^6.0.0
+  share_plus: ^10.0.0
 dev_dependencies:
   flutter_lints: ^6.0.0
   flutter_test:
@@ -51,8 +57,15 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
+  assets:
+    - assets/alarm.mp3
+    - assets/GPS/Fayom/12/
+    - assets/GPS/Fayom/13/
+    - assets/GPS/Fayom/14/
+    - assets/GPS/Fayom/15/
+    - assets/GPS/Fayom/16/
+    - assets/GPS/Fayom/17/
+    - assets/GPS/Fayom/18/
   #   - images/a_dot_ham.jpeg
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

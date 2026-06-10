@@ -1,5 +1,6 @@
 import 'package:accident_detection/app/controllers/app_controller.dart';
 import 'package:accident_detection/pages/home_page.dart';
+import 'package:accident_detection/services/background_service.dart';
 import 'package:accident_detection/themes/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -7,6 +8,7 @@ import 'package:hive_flutter/adapters.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeService();
   await Hive.initFlutter();
   await Hive.openBox('accidents');
   runApp(const MyApp());

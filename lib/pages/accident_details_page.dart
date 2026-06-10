@@ -1,14 +1,22 @@
+import 'package:accident_detection/app/controllers/app_controller.dart';
 import 'package:accident_detection/themes/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:get/get.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:share_plus/share_plus.dart';
 
 class AccidentDetailsPage extends StatelessWidget {
-  AccidentDetailsPage({super.key});
+  const AccidentDetailsPage({super.key});
 
-  Map<String, dynamic> get accident => Get.arguments;
+  Map<String, dynamic> get accident => Get.arguments['accident'];
+  int get index => Get.arguments['index'];
 
   @override
   Widget build(BuildContext context) {
+    double lat = double.tryParse('${accident['latitude']}') ?? 29.3;
+    double lng = double.tryParse('${accident['longitude']}') ?? 30.8;
+
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
 
@@ -43,7 +51,9 @@ class AccidentDetailsPage extends StatelessWidget {
               child: Column(
                 children: [
                   Icon(
-                    Icons.warning_rounded,
+                    accident['type'] == "Fall Down"
+                        ? Icons.warning_rounded
+                        : Icons.car_crash,
                     color: AppColors.danger,
                     size: 60,
                   ),
@@ -101,8 +111,7 @@ class AccidentDetailsPage extends StatelessWidget {
             buildInfoCard(
               icon: Icons.location_on,
               title: "Location",
-              value:
-                  "${accident['latitude'] ?? "?"} , ${accident['longitude'] ?? "?"}",
+              value: "$lat , $lng",
               color: AppColors.monitoringOn,
             ),
 
@@ -110,9 +119,7 @@ class AccidentDetailsPage extends StatelessWidget {
 
             /// TYPE CARD
             buildInfoCard(
-              icon: accident['type'] == "Car Crash"
-                  ? Icons.car_crash
-                  : Icons.warning_rounded,
+              icon: Icons.car_crash,
               title: "Accident Type",
               value: accident['type'] ?? "Unknown",
               color: AppColors.warning,
@@ -140,31 +147,38 @@ class AccidentDetailsPage extends StatelessWidget {
 
             const SizedBox(height: 30),
 
-            /// MAP PLACEHOLDER
-            Container(
-              height: 220,
-              width: double.infinity,
-
-              decoration: BoxDecoration(
-                color: AppColors.border,
+            /// OFFLINE MAP
+            SizedBox(
+              height: 300,
+              child: ClipRRect(
                 borderRadius: BorderRadius.circular(20),
-              ),
-
-              child: const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-
+                child: FlutterMap(
+                  options: MapOptions(
+                    initialCenter: LatLng(lat, lng),
+                    initialZoom: 14,
+                    minZoom: 12,
+                    maxZoom: 18,
+                  ),
                   children: [
-                    Icon(Icons.map, size: 70, color: AppColors.textSecondary),
-
-                    SizedBox(height: 10),
-
-                    Text(
-                      "Map Preview",
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: AppColors.textSecondary,
-                      ),
+                    TileLayer(
+                      urlTemplate: 'assets/GPS/Fayom/{z}/{x}/{y}.png',
+                      tileProvider: AssetTileProvider(),
+                      maxNativeZoom: 18,
+                      minNativeZoom: 12,
+                    ),
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          point: LatLng(lat, lng),
+                          width: 40,
+                          height: 40,
+                          child: const Icon(
+                            Icons.location_on,
+                            color: Colors.red,
+                            size: 40,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -178,7 +192,16 @@ class AccidentDetailsPage extends StatelessWidget {
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () {},
+                    onPressed: () {
+                      String text =
+                          "🚨 Accident Detected!\n"
+                          "Type: ${accident['type']}\n"
+                          "Time: ${accident['time']}\n"
+                          "Location: $lat, $lng\n"
+                          "Force: ${accident['force']?.toStringAsFixed(2) ?? "?"} G\n"
+                          "Speed: ${accident['speed']?.toStringAsFixed(2) ?? "?"} km/h";
+                      Share.share(text);
+                    },
 
                     icon: const Icon(Icons.share),
 
@@ -202,7 +225,10 @@ class AccidentDetailsPage extends StatelessWidget {
 
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () {},
+                    onPressed: () {
+                      Get.find<AppController>().deleteAccident(index);
+                      Get.back();
+                    },
 
                     icon: const Icon(Icons.delete),
 

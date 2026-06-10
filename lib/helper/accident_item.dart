@@ -8,8 +8,10 @@ class AccidentItem extends StatelessWidget {
   const AccidentItem({
     super.key,
     required this.accident,
+    required this.index,
   });
   final Map<String, dynamic> accident;
+  final int index;
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -28,7 +30,10 @@ class AccidentItem extends StatelessWidget {
       ),
       child: ListTile(
         onTap: () {
-          Get.to(() => AccidentDetailsPage(), arguments: accident);
+          Get.to(() => AccidentDetailsPage(), arguments: {
+            'accident': accident,
+            'index': index,
+          });
         },
         minVerticalPadding: 10,
         title: Text(accident['type'], style: FontThemes.bodyStyle),

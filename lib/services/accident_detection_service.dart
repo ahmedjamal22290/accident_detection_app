@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:accident_detection/app/controllers/app_controller.dart';
+import 'package:accident_detection/database/hive_database.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:get/get.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
 class AccidentDetectionService {
@@ -14,7 +14,11 @@ class AccidentDetectionService {
   bool highImpactDetected = false;
 
   double lastGForce = 0;
-  AppController get appController => Get.find<AppController>();
+  final AppController? uiController;
+  DateTime? lastAccidentTime;
+  static const int cooldownMinutes = 5;
+
+  AccidentDetectionService({this.uiController});
 
   /// START
   void startDetection() {
@@ -23,7 +27,7 @@ class AccidentDetectionService {
       double rotation = event.x.abs() + event.y.abs() + event.z.abs();
 
       /// Phone rotated strongly
-      if (rotation > 10) {
+      if (rotation > 2) {
         phoneRotated = true;
       }
     });
@@ -39,30 +43,34 @@ class AccidentDetectionService {
       /// Calculate total force
       double gForce = sqrt(x * x + y * y + z * z);
 
-      appController.xValue.value = x;
-      appController.yValue.value = y;
-      appController.zValue.value = z;
+      uiController?.xValue.value = x;
+      uiController?.yValue.value = y;
+      uiController?.zValue.value = z;
 
-      appController.gForce.value = gForce;
+      uiController?.gForce.value = gForce;
       lastGForce = gForce;
 
       print("GForce: $gForce");
 
       /// Get speed
       Position? position;
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.whileInUse ||
-          permission == LocationPermission.always) {
-        position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
-        );
+      try {
+        LocationPermission permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+        }
+        if (permission == LocationPermission.whileInUse ||
+            permission == LocationPermission.always) {
+          position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high,
+          );
+        }
+      } catch (e) {
+        print("Location unavailable: $e");
       }
 
       double speed = (position?.speed ?? 0) * 3.6;
-      appController.speed.value = speed;
+      uiController?.speed.value = speed;
 
       print("Speed: $speed km/h");
 
@@ -70,46 +78,78 @@ class AccidentDetectionService {
       /// CAR CRASH DETECTION
       /// ---------------------------
 
-      if (gForce > 25 && speed > 20 && phoneRotated) {
-        print("CAR CRASH DETECTED");
+      if (gForce > 6 && phoneRotated) {
+        if (lastAccidentTime != null &&
+            DateTime.now().difference(lastAccidentTime!).inMinutes <
+                cooldownMinutes) {
+          print("SKIPPED: cooldown active");
+        } else {
+          print("CAR CRASH DETECTED");
 
-        highImpactDetected = true;
+          highImpactDetected = true;
+          lastAccidentTime = DateTime.now();
 
-        if (position != null) {
           await saveAccident(
             type: "Car Crash",
             force: gForce,
             speed: speed,
             position: position,
           );
-        }
 
-        resetStates();
+          resetStates();
+        }
+      }
+      if (gForce > 6) {
+        if (lastAccidentTime != null &&
+            DateTime.now().difference(lastAccidentTime!).inMinutes <
+                cooldownMinutes) {
+          print("SKIPPED: cooldown active");
+        } else {
+          print("CAR CRASH DETECTED");
+
+          highImpactDetected = true;
+          lastAccidentTime = DateTime.now();
+
+          await saveAccident(
+            type: "Car Crash",
+            force: gForce,
+            speed: speed,
+            position: position,
+          );
+
+          resetStates();
+        }
       }
 
       /// ---------------------------
       /// FALL DETECTION
       /// ---------------------------
 
-      if (gForce < 1) {
+      if (gForce < 3) {
         /// Possible free fall
         print("Free Fall Detected");
 
         await Future.delayed(const Duration(seconds: 1));
 
-        if (lastGForce > 18) {
-          print("FALL DETECTED");
+        if (lastGForce > 5) {
+          if (lastAccidentTime != null &&
+              DateTime.now().difference(lastAccidentTime!).inMinutes <
+                  cooldownMinutes) {
+            print("SKIPPED: cooldown active");
+          } else {
+            print("FALL DETECTED");
 
-          if (position != null) {
+            lastAccidentTime = DateTime.now();
+
             await saveAccident(
               type: "Fall Down",
               force: lastGForce,
               speed: speed,
               position: position,
             );
-          }
 
-          resetStates();
+            resetStates();
+          }
         }
       }
     });
@@ -126,19 +166,20 @@ class AccidentDetectionService {
     required String type,
     required double force,
     required double speed,
-    required Position position,
+    Position? position,
   }) async {
-    Map<String, dynamic> accident = {
-      "type": type,
-      "time": DateTime.now().toString(),
-      "latitude": position.latitude,
-      "longitude": position.longitude,
-      "speed": speed,
-      "force": force,
-    };
-    await appController.addAccident(accident);
+    await HiveDatabase.addToDatabase(
+      type,
+      DateTime.now(),
+      force,
+      speed,
+      position?.latitude ?? 0,
+      position?.longitude ?? 0,
+    );
 
-    await appController.loadAccidents();
+    if (uiController != null) {
+      await uiController!.loadAccidents();
+    }
 
     print("ACCIDENT SAVED");
   }

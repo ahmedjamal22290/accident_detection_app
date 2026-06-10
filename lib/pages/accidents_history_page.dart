@@ -21,7 +21,7 @@ class AccidentsHistoryPage extends GetView<AppController> {
           itemCount: controller.accidents.length,
           itemBuilder: (context, index) {
             Map<String, dynamic> accident = controller.accidents[index];
-            return AccidentItem(accident: accident);
+            return AccidentItem(accident: accident, index: index);
           },
         );
       }),
